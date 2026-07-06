@@ -3,3 +3,10 @@ __pycache__/
 *.pyc
 report.html
 .env
+.venv/
+*.db
+*.sqlite3
+frontend/node_modules/
+frontend/dist/
+work/*.log
+work/*.json
