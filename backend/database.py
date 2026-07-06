@@ -12,10 +12,12 @@ if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # Map to correct async driver
-# Use psycopg (v3) async for PostgreSQL, aiosqlite for SQLite
-if DATABASE_URL.startswith("postgresql://") or DATABASE_URL.startswith("postgresql+psycopg://"):
-    # Strip ?sslmode=... for driver — psycopg handles ssl via connect_args
+# Normalize all PostgreSQL URLs to psycopg async, which handles Neon sslmode cleanly.
+if DATABASE_URL.startswith(("postgresql://", "postgresql+psycopg://", "postgresql+asyncpg://")):
     connect_url = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
+    if connect_url.startswith("postgresql+asyncpg://"):
+        connect_url = connect_url.replace("postgresql+asyncpg://", "postgresql+psycopg://", 1)
+
     # Extract sslmode from URL params if present
     import urllib.parse as _urlparse
     _parsed = _urlparse.urlparse(DATABASE_URL)
@@ -28,6 +30,8 @@ if DATABASE_URL.startswith("postgresql://") or DATABASE_URL.startswith("postgres
         query=_urlparse.urlencode({k: v[0] for k, v in _clean_qs.items()})
     )
     connect_url = _urlparse.urlunparse(_clean_parsed).replace("postgresql://", "postgresql+psycopg://", 1)
+    if connect_url.startswith("postgresql+asyncpg://"):
+        connect_url = connect_url.replace("postgresql+asyncpg://", "postgresql+psycopg://", 1)
 
     _connect_args: dict = {}
     if _sslmode == "require":
